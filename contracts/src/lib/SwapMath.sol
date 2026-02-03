@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import {Math} from "./Math.sol";
 import {Gaussian} from "./Gaussian.sol";
-import {FixedPointMathLib} from "lib/solady/src/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "../../lib/solady/src/utils/FixedPointMathLib.sol";
 
 library SwapMath {
     int256 constant APPROX = 1e15;

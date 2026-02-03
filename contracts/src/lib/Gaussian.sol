@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {FixedPointMathLib} from "lib/solady/src/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "../../lib/solady/src/utils/FixedPointMathLib.sol";
 import "./Units.sol";
 
 /**

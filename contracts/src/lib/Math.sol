@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.19;
 
-import {FixedPointMathLib} from "lib/solady/src/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "../../lib/solady/src/utils/FixedPointMathLib.sol";
 import {Gaussian} from "./Gaussian.sol";
 
 library Math {
