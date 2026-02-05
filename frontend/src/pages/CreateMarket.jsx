@@ -3,6 +3,20 @@ import { AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCreateMarket, useApproveMUSD, useAllowance, useMUSDBalance } from "../hooks/useContracts";
 import { useAccount } from "wagmi";
+import { useMintMockUSD } from "../hooks/useContracts";
+
+const MintButton = () => {
+  const { mint, isPending } = useMintMockUSD();
+  return (
+    <button
+      onClick={() => mint()}
+      disabled={isPending}
+      className="text-xs text-indigo-400 hover:text-indigo-300 underline disabled:opacity-50"
+    >
+      {isPending ? "Minting..." : "Get Testnet mUSD"}
+    </button>
+  );
+};
 
 export default function CreateMarket() {
   const navigate = useNavigate();
@@ -40,8 +54,10 @@ export default function CreateMarket() {
   }, [isCreateSuccess, navigate]);
 
   const hasAllowance = allowance && formData.liquidity && parseFloat(allowance) >= parseFloat(formData.liquidity);
+  const hasInsufficientBalance = musdBalance && formData.liquidity && parseFloat(musdBalance) < parseFloat(formData.liquidity);
 
   const handleApprove = () => {
+    if (hasInsufficientBalance) return;
     approve(formData.liquidity);
   };
 
@@ -225,9 +241,14 @@ export default function CreateMarket() {
                   onChange={handleInputChange}
                   className="min-input"
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  Balance: {musdBalance ? parseFloat(musdBalance).toFixed(2) : '0'} mUSD
-                </p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-xs text-slate-500">
+                    Balance: {musdBalance ? parseFloat(musdBalance).toFixed(2) : '0'} mUSD
+                  </p>
+                  <div id="mint-btn-container">
+                    <MintButton />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -256,6 +277,25 @@ export default function CreateMarket() {
                   </p>
                 </div>
               </div>
+
+              {hasInsufficientBalance && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-lg flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Insufficient mUSD Balance</p>
+                    <p className="text-sm opacity-80">
+                      You need {formData.liquidity} mUSD but only have {parseFloat(musdBalance || '0').toFixed(2)}.
+                      <br />
+                      <button
+                        onClick={() => document.getElementById('mint-btn-container')?.click()}
+                        className="underline font-bold mt-1 hover:text-white"
+                      >
+                        Click "Get Testnet mUSD" above to mint tokens.
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {!hasAllowance ? (
                 <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-4 flex gap-3">

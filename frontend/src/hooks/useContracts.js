@@ -94,9 +94,10 @@ export function useMarkets() {
                         return {
                             address,
                             marketId,
-                            title: metadata[2],
-                            description: metadata[3],
-                            resolutionSource: metadata[4],
+                            title: metadata[4], // title is index 4 now
+                            category: metadata[6],
+                            description: metadata[5],
+                            resolutionSource: metadata[7],
                             liquidity: formatEther(details[3]), // Use actual liquidity from market, not initial
                             state: MARKET_STATES[details[0]] || 'UNKNOWN',
                             deadline: Number(details[1]),
@@ -184,9 +185,9 @@ export function useMarketDetails(marketAddress) {
                     })
 
                     return {
-                        title: meta[2],
-                        description: meta[3],
-                        resolutionSource: meta[4]
+                        title: meta[4],
+                        description: meta[5],
+                        resolutionSource: meta[7]
                     }
                 } catch (e) {
                     console.error("Metadata fetch error", e)
@@ -227,6 +228,7 @@ export function useMUSDBalance() {
         queryKey: [CACHE_KEYS.MUSD_BALANCE, userAddress],
         queryFn: async () => {
             if (!userAddress) return '0'
+            console.log('Fetching mUSD balance for:', userAddress, 'Token:', MOCK_USD)
 
             const balance = await publicClient.readContract({
                 address: MOCK_USD,
@@ -234,6 +236,7 @@ export function useMUSDBalance() {
                 functionName: 'balanceOf',
                 args: [userAddress],
             })
+            console.log('Fetched balance:', formatEther(balance))
 
             return formatEther(balance)
         },
@@ -439,7 +442,7 @@ export function useCreateMarket() {
         }
     }, [isSuccess, queryClient])
 
-    const createMarket = ({ title, description, resolutionSource, isDynamic, duration, collateral }) => {
+    const createMarket = ({ title, description, category = "General", resolutionSource, isDynamic, duration, collateral }) => {
         let durationSeconds = 0n;
 
         if (typeof duration === 'object') {
@@ -463,8 +466,8 @@ export function useCreateMarket() {
         writeContract({
             address: ROUTER,
             abi: RouterABI,
-            functionName: 'create',
-            args: [title, description, resolutionSource, isDynamic, durationSeconds, parseEther(collateral.toString())],
+            functionName: 'createMarket',
+            args: [title, description, category, resolutionSource, isDynamic, durationSeconds, parseEther(collateral.toString())],
         })
     }
 

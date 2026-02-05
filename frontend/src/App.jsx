@@ -1,8 +1,6 @@
-import { Routes, Route, Link } from "react-router-dom";
-import Markets from "./pages/Markets";
-import Market from "./pages/Market";
-import CreateMarket from "./pages/CreateMarket";
+import { Routes, Route, Link, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
+import ChainBet from "./pages/ChainBet";
 import NotFound from "./pages/NotFound";
 import { useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
@@ -50,16 +48,10 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             <Link
-              to="/markets"
-              className="text-slate-400 hover:text-white transition-colors"
+              to="/chainbet"
+              className="text-slate-400 hover:text-white transition-colors font-semibold"
             >
-              Markets
-            </Link>
-            <Link
-              to="/create"
-              className="text-slate-400 hover:text-white transition-colors"
-            >
-              Create
+              ⚡ ChainBet
             </Link>
             <Link
               to="/dashboard"
@@ -139,18 +131,11 @@ const Header = () => {
       {mobileMenuOpen && (
         <nav className="md:hidden border-t border-white/6 py-4 space-y-3">
           <Link
-            to="/markets"
+            to="/chainbet"
             className="block text-slate-400 hover:text-white transition-colors"
             onClick={() => setMobileMenuOpen(false)}
           >
-            Markets
-          </Link>
-          <Link
-            to="/create"
-            className="block text-slate-400 hover:text-white transition-colors"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Create
+            ⚡ ChainBet
           </Link>
           <Link
             to="/dashboard"
@@ -193,38 +178,27 @@ const Layout = ({ children }) => (
 
 const App = () => (
   <Routes>
+    {/* Homepage - ChainBet */}
     <Route
       path="/"
       element={
         <Layout>
-          <Markets />
+          <ChainBet />
         </Layout>
       }
     />
+
+    {/* ChainBet page */}
     <Route
-      path="/markets"
+      path="/chainbet"
       element={
         <Layout>
-          <Markets />
+          <ChainBet />
         </Layout>
       }
     />
-    <Route
-      path="/market/:id"
-      element={
-        <Layout>
-          <Market />
-        </Layout>
-      }
-    />
-    <Route
-      path="/create"
-      element={
-        <Layout>
-          <CreateMarket />
-        </Layout>
-      }
-    />
+
+    {/* Profile/Dashboard */}
     <Route
       path="/dashboard"
       element={
@@ -233,6 +207,13 @@ const App = () => (
         </Layout>
       }
     />
+
+    {/* Legacy routes - redirect to ChainBet */}
+    <Route path="/markets" element={<Navigate to="/chainbet" replace />} />
+    <Route path="/create" element={<Navigate to="/chainbet" replace />} />
+    <Route path="/market/:id" element={<Navigate to="/chainbet" replace />} />
+
+    {/* 404 */}
     <Route
       path="*"
       element={

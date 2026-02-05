@@ -1,0 +1,326 @@
+/**
+ * Create Market Modal Component
+ * Modal for creating new prediction markets
+ */
+
+import { useState } from 'react';
+import { X } from 'lucide-react';
+import { useCreateMarket, useApproveMUSD, useAllowance, useMUSDBalance } from '../hooks/useContracts';
+import { ethers } from 'ethers';
+import { ROUTER } from '../lib/wagmi';
+
+export function CreateMarketModal({ isOpen, onClose }) {
+    const [step, setStep] = useState(1); // 1: Form, 2: Approve, 3: Create
+    const [formData, setFormData] = useState({
+        title: '',
+        description: '',
+        category: 'Crypto',
+        liquidity: '1000',
+        durationDays: '7',
+        durationHours: '0',
+        durationMinutes: '0',
+    });
+
+    const { data: musdBalance } = useMUSDBalance();
+    const { data: allowance } = useAllowance();
+    const { writeContract: approve, isPending: isApproving } = useApproveMUSD();
+    const { writeContract: createMarket, isPending: isCreating } = useCreateMarket();
+
+    const categories = ['Crypto', 'Politics', 'Sports', 'Tech', 'Other'];
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleApprove = async () => {
+        try {
+            const amount = ethers.parseEther(formData.liquidity);
+            await approve({
+                args: [ROUTER, amount]
+            });
+            setStep(3);
+        } catch (error) {
+            console.error('Approval failed:', error);
+            alert('Approval failed: ' + error.message);
+        }
+    };
+
+    const handleCreate = async () => {
+        try {
+            const durationSeconds =
+                parseInt(formData.durationDays || 0) * 24 * 60 * 60 +
+                parseInt(formData.durationHours || 0) * 60 * 60 +
+                parseInt(formData.durationMinutes || 0) * 60;
+
+            const liquidityWei = ethers.parseEther(formData.liquidity);
+
+            await createMarket({
+                args: [
+                    formData.title,
+                    formData.description,
+                    'Market resolution determined by community vote', // resolutionSource
+                    formData.category,
+                    false, // isDynamic
+                    durationSeconds,
+                    liquidityWei
+                ]
+            });
+
+            alert('Market created successfully! 🎉');
+            onClose();
+            setStep(1);
+            setFormData({
+                title: '',
+                description: '',
+                category: 'Crypto',
+                liquidity: '1000',
+                durationDays: '7',
+                durationHours: '0',
+                durationMinutes: '0',
+            });
+        } catch (error) {
+            console.error('Market creation failed:', error);
+            alert('Market creation failed: ' + error.message);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    const needsApproval = !allowance || allowance < ethers.parseEther(formData.liquidity || '0');
+    const hasInsufficientBalance = parseFloat(musdBalance || '0') < parseFloat(formData.liquidity || '0');
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-6 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold">Create Prediction Market</h2>
+                        <p className="text-violet-100 text-sm">Deploy your market on Yellow Network</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    {/* Step Indicator */}
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                        <div className={`px-4 py-2 rounded-lg font-medium ${step === 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-400'}`}>
+                            1. Details
+                        </div>
+                        <div className="w-8 h-px bg-gray-300" />
+                        <div className={`px-4 py-2 rounded-lg font-medium ${step === 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-400'}`}>
+                            2. Approve
+                        </div>
+                        <div className="w-8 h-px bg-gray-300" />
+                        <div className={`px-4 py-2 rounded-lg font-medium ${step === 3 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-400'}`}>
+                            3. Create
+                        </div>
+                    </div>
+
+                    {/* Step 1: Form */}
+                    {step === 1 && (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Market Question
+                                </label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleInputChange}
+                                    placeholder="Will Bitcoin hit $100k in 2026?"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Description
+                                </label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleInputChange}
+                                    placeholder="This market resolves YES if Bitcoin reaches $100,000 USD by December 31, 2026..."
+                                    rows={3}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Category
+                                    </label>
+                                    <select
+                                        name="category"
+                                        value={formData.category}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    >
+                                        {categories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Duration
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <input
+                                                type="number"
+                                                name="durationDays"
+                                                value={formData.durationDays}
+                                                onChange={handleInputChange}
+                                                min="0"
+                                                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1 text-center">Days</p>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="number"
+                                                name="durationHours"
+                                                value={formData.durationHours}
+                                                onChange={handleInputChange}
+                                                min="0"
+                                                max="23"
+                                                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1 text-center">Hours</p>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="number"
+                                                name="durationMinutes"
+                                                value={formData.durationMinutes}
+                                                onChange={handleInputChange}
+                                                min="0"
+                                                max="59"
+                                                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1 text-center">Minutes</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Initial Liquidity (mUSD)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="liquidity"
+                                        value={formData.liquidity}
+                                        onChange={handleInputChange}
+                                        min="100"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Your balance: {parseFloat(musdBalance || '0').toFixed(2)} mUSD
+                                    </p>
+                                </div>
+
+                                {hasInsufficientBalance && (
+                                    <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+                                        <p className="font-medium">Insufficient Balance</p>
+                                        <p className="text-sm">You need {formData.liquidity} mUSD but only have {parseFloat(musdBalance || '0').toFixed(2)} mUSD. Get more from the Dashboard.</p>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => setStep(needsApproval ? 2 : 3)}
+                                    disabled={!formData.title || !formData.description || hasInsufficientBalance}
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Continue
+                                </button>
+                            </div>
+                    )}
+
+                            {/* Step 2: Approve */}
+                            {step === 2 && (
+                                <div className="space-y-4 text-center">
+                                    <div className="text-6xl mb-4">💰</div>
+                                    <h3 className="text-xl font-bold text-gray-900">Approve mUSD Spending</h3>
+                                    <p className="text-gray-600">
+                                        Approve the MarketFactory contract to spend {formData.liquidity} mUSD for initial liquidity.
+                                    </p>
+                                    <button
+                                        onClick={handleApprove}
+                                        disabled={isApproving}
+                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50"
+                                    >
+                                        {isApproving ? 'Approving...' : 'Approve mUSD'}
+                                    </button>
+                                    <button
+                                        onClick={() => setStep(1)}
+                                        className="w-full text-gray-600 hover:text-gray-800 py-2"
+                                    >
+                                        ← Back
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Step 3: Create */}
+                            {step === 3 && (
+                                <div className="space-y-4 text-center">
+                                    <div className="text-6xl mb-4">🚀</div>
+                                    <h3 className="text-xl font-bold text-gray-900">Deploy Market</h3>
+                                    <p className="text-gray-600">
+                                        Click below to create your prediction market on Yellow Network!
+                                    </p>
+
+                                    {/* Summary */}
+                                    <div className="bg-gray-50 rounded-lg p-4 text-left space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Question:</span>
+                                            <span className="font-medium">{formData.title}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Category:</span>
+                                            <span className="font-medium">{formData.category}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Duration:</span>
+                                            <span className="font-medium">
+                                                {formData.durationDays}d {formData.durationHours}h {formData.durationMinutes}m
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Liquidity:</span>
+                                            <span className="font-medium">{formData.liquidity} mUSD</span>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handleCreate}
+                                        disabled={isCreating}
+                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50"
+                                    >
+                                        {isCreating ? 'Creating Market...' : 'Create Market 🎉'}
+                                    </button>
+                                    <button
+                                        onClick={() => setStep(needsApproval ? 2 : 1)}
+                                        className="w-full text-gray-600 hover:text-gray-800 py-2"
+                                    >
+                                        ← Back
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+            </div>
+            </div>
+            );
+}

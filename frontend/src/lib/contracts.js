@@ -46,9 +46,12 @@ export const RouterABI = [
         inputs: [{ name: 'marketId', type: 'bytes32' }],
         outputs: [
             { name: 'market', type: 'address' },
+            { name: 'creator', type: 'address' },
             { name: 'liquidity', type: 'uint256' },
+            { name: 'deadline', type: 'uint256' },
             { name: 'title', type: 'string' },
             { name: 'description', type: 'string' },
+            { name: 'category', type: 'string' },
             { name: 'resolutionSource', type: 'string' },
         ],
         stateMutability: 'view',
@@ -63,16 +66,20 @@ export const RouterABI = [
     // Write Functions
     {
         type: 'function',
-        name: 'create',
+        name: 'createMarket',
         inputs: [
             { name: 'title', type: 'string' },
             { name: 'description', type: 'string' },
+            { name: 'category', type: 'string' },
             { name: 'resolutionSource', type: 'string' },
             { name: 'isDynamic', type: 'bool' },
             { name: 'duration', type: 'uint256' },
             { name: 'collateralIn', type: 'uint256' },
         ],
-        outputs: [],
+        outputs: [
+            { name: 'marketId', type: 'bytes32' },
+            { name: 'marketAddress', type: 'address' }
+        ],
         stateMutability: 'nonpayable',
     },
     {
