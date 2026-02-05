@@ -20,6 +20,7 @@ export function useYellowSession() {
     const [balance, setBalance] = useState({ available: 0n, locked: 0n, total: 0n });
     const [positions, setPositions] = useState([]);
     const [gasSavings, setGasSavings] = useState(0);
+    const [updateCounter, setUpdateCounter] = useState(0); // Force UI refresh
     const [depositTxHash, setDepositTxHash] = useState(null);
 
     // Initialize Yellow client
@@ -37,16 +38,23 @@ export function useYellowSession() {
                         const sessionData = JSON.parse(savedSession);
                         console.log('[useYellowSession] Restoring session from localStorage:', sessionData);
 
+                        // Validate required fields
+                        if (!sessionData.sessionId || !sessionData.availableBalance) {
+                            console.warn('[useYellowSession] Invalid session data, clearing');
+                            localStorage.removeItem(`yellow_session_${address}`);
+                            return;
+                        }
+
                         // Restore session to yellowClient
                         client.sessionState = {
                             sessionId: sessionData.sessionId,
-                            user: address, // Set user address for hash validation
+                            user: address,
                             userId: address,
-                            depositAmount: BigInt(sessionData.depositAmount),
-                            availableBalance: BigInt(sessionData.availableBalance),
-                            positions: sessionData.positions || [],
-                            stateVersion: sessionData.stateVersion || 0,
-                            timestamp: sessionData.timestamp || Date.now()
+                            availableBalance: BigInt(sessionData.availableBalance || '0'),
+                            positions: Array.isArray(sessionData.positions) ? sessionData.positions : [],
+                            marketReserves: sessionData.marketReserves || {}, // Initialize reserves map
+                            stateVersion: Number(sessionData.stateVersion) || 0,
+                            timestamp: Number(sessionData.timestamp) || Date.now()
                         };
 
                         setSession(sessionData);
@@ -73,35 +81,62 @@ export function useYellowSession() {
             console.log('Opening Yellow session with deposit:', depositAmount.toString());
 
             // Step 1: Approve USDC spending (triggers MetaMask)
-            console.log('Step 1/3: Approving USDC...');
+            console.log('Step 1/4: Approving USDC...');
+            const routerAddress = import.meta.env.VITE_ROUTER_ADDRESS;
+
             const approveTx = await writeContractAsync({
                 address: MOCK_USD,
                 abi: ERC20ABI,
                 functionName: 'approve',
-                args: [address, depositAmount], // For demo, approve to self (simulating custody contract)
+                args: [routerAddress, depositAmount], // Approve Router to take funds
             });
             console.log('Approval tx:', approveTx);
 
-            // Step 2: Simulate deposit to custody (in production, this would be a real contract call)
-            // For demo purposes, we just verify the approval worked
-            console.log('Step 2/3: Simulating custody deposit...');
-            // In production: transfer to custody contract here
+            // Wait for approval to confirm
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Step 3: Create off-chain Yellow session
-            console.log('Step 3/3: Creating Yellow session...');
+            // Step 2: Transfer mUSD to Router (acts as custody for session)
+            console.log('Step 2/4: Transferring USDC to custody...');
+            const transferTx = await writeContractAsync({
+                address: MOCK_USD,
+                abi: ERC20ABI,
+                functionName: 'transfer',
+                args: [routerAddress, depositAmount], // Lock funds in Router
+            });
+            console.log('Transfer tx:', transferTx);
+            console.log(`💰 Deposited ${Number(depositAmount) / 1e18} mUSD to custody`);
+
+            // Step 3: Wait for confirmation
+            console.log('Step 3/4: Waiting for confirmation...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Step 4: Create off-chain Yellow session
+            console.log('Step 4/4: Creating Yellow session...');
             const sessionState = await yellowClient.openSession(depositAmount);
 
             setSession(sessionState);
             setIsSessionActive(true);
-            setDepositTxHash(approveTx);
+            setDepositTxHash(transferTx);
             updateBalance();
+
+            // Validate session state before saving
+            if (!sessionState) {
+                throw new Error('Session state was not created');
+            }
+
+            console.log('[useYellowSession] Session state:', {
+                sessionId: sessionState.sessionId,
+                availableBalance: sessionState.availableBalance,
+                user: sessionState.user,
+                timestamp: sessionState.timestamp
+            });
 
             // Save to localStorage for persistence
             const sessionData = {
                 sessionId: sessionState.sessionId,
                 user: address, // Save user address
-                depositAmount: depositAmount.toString(),
-                availableBalance: sessionState.availableBalance.toString(),
+                depositAmount: depositAmount ? depositAmount.toString() : '0',
+                availableBalance: sessionState.availableBalance ? sessionState.availableBalance.toString() : '0',
                 positions: sessionState.positions || [],
                 stateVersion: sessionState.stateVersion || 0,
                 timestamp: sessionState.timestamp || Date.now()
@@ -159,45 +194,55 @@ export function useYellowSession() {
 
         try {
             // Fetch actual market reserves from contract
-            console.log('[useYellowSession] Fetching market reserves for:', marketId);
+            // Get market reserves - use cached if available for bonding curve
+            let yesReserve, noReserve, liquidity;
 
-            const provider = new ethers.BrowserProvider(window.ethereum);
+            if (yellowClient.sessionState?.marketReserves?.[marketId]) {
+                // Use cached reserves from session (updated after each trade)
+                const cached = yellowClient.sessionState.marketReserves[marketId];
+                yesReserve = cached.yesReserve;
+                noReserve = cached.noReserve;
+                liquidity = cached.liquidity;
+                console.log('[useYellowSession] Using CACHED reserves (bonding curve active):', {
+                    yesReserve: Number(yesReserve) / 1e18,
+                    noReserve: Number(noReserve) / 1e18,
+                    liquidity: Number(liquidity) / 1e18
+                });
+            } else {
+                // First trade - fetch from contract
+                console.log('[useYellowSession] Fetching fresh reserves from contract...');
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const marketContract = new ethers.Contract(marketId, LvrMarketABI, provider);
 
-            // Create contract instance
-            const marketContract = new ethers.Contract(marketId, LvrMarketABI, provider);
+                const yesTokenAddr = await marketContract.yesToken();
+                const noTokenAddr = await marketContract.noToken();
 
-            // Get YES and NO token addresses
-            const yesTokenAddr = await marketContract.yesToken();
-            const noTokenAddr = await marketContract.noToken();
+                const yesTokenContract = new ethers.Contract(yesTokenAddr, ERC20ABI, provider);
+                const noTokenContract = new ethers.Contract(noTokenAddr, ERC20ABI, provider);
 
-            // Get YES and NO token balances (reserves in the market)
-            const yesTokenContract = new ethers.Contract(yesTokenAddr, ERC20ABI, provider);
-            const noTokenContract = new ethers.Contract(noTokenAddr, ERC20ABI, provider);
+                yesReserve = await yesTokenContract.balanceOf(marketId);
+                noReserve = await noTokenContract.balanceOf(marketId);
 
-            const yesReserve = await yesTokenContract.balanceOf(marketId);
-            const noReserve = await noTokenContract.balanceOf(marketId);
+                const marketDetails = await marketContract.getMarketDetails();
+                liquidity = marketDetails[3];
 
-            // Get market details for liquidity
-            const marketDetails = await marketContract.getMarketDetails();
-            const liquidity = marketDetails[3]; // liquidity is at index 3
+                console.log('[useYellowSession] Fetched fresh reserves:', {
+                    yesReserve: yesReserve.toString(),
+                    noReserve: noReserve.toString(),
+                    liquidity: liquidity.toString()
+                });
+            }
 
-            console.log('[useYellowSession] Fetched reserves:', {
-                yesReserve: yesReserve.toString(),
-                noReserve: noReserve.toString(),
-                liquidity: liquidity.toString()
-            });
-
-            const result = await yellowClient.call('market_buy', {
+            const result = await yellowClient.marketBuy(
                 marketId,
                 side,
                 amount,
-                slippage,
-                reserves: {
+                {
                     yesReserve: yesReserve.toString(),
                     noReserve: noReserve.toString(),
                     liquidity: liquidity.toString()
                 }
-            });
+            );
 
             console.log('[useYellowSession] marketBuy result:', result);
 
@@ -205,17 +250,17 @@ export function useYellowSession() {
             updateBalance();
             updatePositions();
             updateGasSavings();
+            setUpdateCounter(c => c + 1); // Force re-render
 
             // Persist updated session to localStorage
             if (address && yellowClient.sessionState) {
                 const sessionData = {
                     sessionId: yellowClient.sessionState.sessionId,
-                    depositAmount: yellowClient.sessionState.depositAmount.toString(),
                     availableBalance: yellowClient.sessionState.availableBalance.toString(),
                     positions: (yellowClient.sessionState.positions || []).map(p => ({
                         ...p,
-                        size: p.size?.toString ? p.size.toString() : p.size,
-                        cost: p.cost?.toString ? p.cost.toString() : p.cost,
+                        tokenAmount: p.tokenAmount.toString(),
+                        investmentAmount: p.investmentAmount.toString()
                     })),
                     stateVersion: yellowClient.sessionState.stateVersion || 0,
                 };
@@ -223,7 +268,7 @@ export function useYellowSession() {
                 localStorage.setItem(`yellow_session_${address}`, JSON.stringify(sessionData, (key, value) =>
                     typeof value === 'bigint' ? value.toString() : value
                 ));
-                console.log('[useYellowSession] Session updated in localStorage after trade');
+                console.log('[useYellowSession] Session data saved to localStorage after trade');
             }
 
             return result;
@@ -242,11 +287,28 @@ export function useYellowSession() {
         }
 
         try {
-            const result = await yellowClient.call('market_sell', {
+            // Fetch reserves (similar to buy)
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const marketContract = new ethers.Contract(marketId, LvrMarketABI, provider);
+            const yesTokenAddr = await marketContract.yesToken();
+            const noTokenAddr = await marketContract.noToken();
+            const yesTokenContract = new ethers.Contract(yesTokenAddr, ERC20ABI, provider);
+            const noTokenContract = new ethers.Contract(noTokenAddr, ERC20ABI, provider);
+            const yesReserve = await yesTokenContract.balanceOf(marketId);
+            const noReserve = await noTokenContract.balanceOf(marketId);
+            const marketDetails = await marketContract.getMarketDetails();
+            const liquidity = marketDetails[3];
+
+            const result = await yellowClient.marketSell(
                 marketId,
                 side,
-                amount
-            });
+                amount,
+                {
+                    yesReserve: yesReserve.toString(),
+                    noReserve: noReserve.toString(),
+                    liquidity: liquidity.toString()
+                }
+            );
 
             updateBalance();
             updatePositions();
@@ -260,42 +322,14 @@ export function useYellowSession() {
     }, [yellowClient, isSessionActive]);
 
     /**
-     * Extend conviction chain
-     */
-    const extendChain = useCallback(async (parentMarket, childMarket, collateralAmount, side) => {
-        if (!yellowClient || !isSessionActive) {
-            throw new Error('No active session');
-        }
-
-        try {
-            const result = await yellowClient.call('chain_extend', {
-                parentMarket,
-                childMarket,
-                collateralAmount,
-                side
-            });
-
-            updateBalance();
-            updatePositions();
-            updateGasSavings();
-
-            return result;
-        } catch (error) {
-            console.error('Chain extend failed:', error);
-            throw error;
-        }
-    }, [yellowClient, isSessionActive]);
-
-    /**
-     * Get market price
+     * Get market price (simplified for WebSocket client)
      */
     const getMarketPrice = useCallback(async (marketId) => {
-        if (!yellowClient) {
-            throw new Error('Yellow client not initialized');
-        }
-
-        return await yellowClient.call('market_price', { marketId });
-    }, [yellowClient]);
+        // In the new client, prices are calculated from reserves
+        // For now, return a default or fetch from contract
+        console.warn('[useYellowSession] getMarketPrice simplified in WebSocket client');
+        return { yesPrice: 0.5, noPrice: 0.5 };
+    }, []);
 
     /**
      * Update balance from session state
@@ -303,18 +337,23 @@ export function useYellowSession() {
     const updateBalance = useCallback(() => {
         if (!yellowClient || !isSessionActive) return;
 
-        // Read directly from yellowClient session state
         if (yellowClient.sessionState) {
-            const newBalance = {
+            // Calculate locked balance from positions
+            const locked = yellowClient.sessionState.positions.reduce(
+                (sum, pos) => sum + pos.investmentAmount,
+                0n
+            );
+
+            setBalance({
                 available: yellowClient.sessionState.availableBalance,
-                locked: 0n, // TODO: calculate locked from positions
-                total: yellowClient.sessionState.depositAmount
-            };
-            console.log('[useYellowSession] Updating balance:', {
-                available: newBalance.available.toString(),
-                total: newBalance.total.toString()
+                locked,
+                total: yellowClient.sessionState.availableBalance + locked
             });
-            setBalance(newBalance);
+
+            console.log('[useYellowSession] Updating balance:', {
+                available: yellowClient.sessionState.availableBalance.toString(),
+                total: (yellowClient.sessionState.availableBalance + locked).toString()
+            });
         }
     }, [yellowClient, isSessionActive]);
 
@@ -335,11 +374,14 @@ export function useYellowSession() {
      * Update gas savings counter
      */
     const updateGasSavings = useCallback(() => {
-        if (!yellowClient) return;
+        if (!yellowClient || !session) return;
 
-        const savings = yellowClient.getGasSavings();
-        setGasSavings(savings);
-    }, [yellowClient]);
+        // Calculate gas savings locally
+        // Estimate: $5 per transaction, state channels = $0
+        const transactionCount = session.stateVersion || 0;
+        const estimatedGasSaved = transactionCount * 5; // $5 per tx
+        setGasSavings(estimatedGasSaved);
+    }, [yellowClient, session]);
 
     // Auto-update on session changes
     useEffect(() => {
@@ -348,7 +390,7 @@ export function useYellowSession() {
             updatePositions();
             updateGasSavings();
         }
-    }, [isSessionActive, yellowClient]); // Don't include update functions to avoid infinite loop
+    }, [isSessionActive, yellowClient?.sessionState?.stateVersion]); // Trigger on trade
 
     return {
         // Client
@@ -363,7 +405,6 @@ export function useYellowSession() {
         // Trading
         marketBuy,
         marketSell,
-        extendChain,
         getMarketPrice,
 
         // State

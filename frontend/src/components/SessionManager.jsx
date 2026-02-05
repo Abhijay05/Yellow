@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useYellowSession } from '../hooks/useYellowSession';
+import { formatWeiToUSD } from '../lib/formatters';
 
 export function SessionManager() {
     const {
@@ -120,26 +121,25 @@ export function SessionManager() {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                    <div className="text-sm text-emerald-100 mb-1">Available Balance</div>
-                    <div className="text-3xl font-bold">
-                        ${Number(balance.available) / 1e18}
-                    </div>
+            {/* Balance Display */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm border border-white/30">
+                    <p className="text-sm text-white/80 mb-1 font-medium">Available Balance</p>
+                    <p className="text-2xl font-bold text-white">
+                        ${formatWeiToUSD(balance?.available)}
+                    </p>
                 </div>
-
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                    <div className="text-sm text-emerald-100 mb-1">Locked in Positions</div>
-                    <div className="text-3xl font-bold">
-                        ${Number(balance.locked) / 1e18}
-                    </div>
+                <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm border border-white/30">
+                    <p className="text-sm text-white/80 mb-1 font-medium">Locked in Positions</p>
+                    <p className="text-2xl font-bold text-white">
+                        ${formatWeiToUSD(balance?.locked)}
+                    </p>
                 </div>
-
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                    <div className="text-sm text-emerald-100 mb-1">Total Value</div>
-                    <div className="text-3xl font-bold">
-                        ${Number(balance.total) / 1e18}
-                    </div>
+                <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm border border-white/30">
+                    <p className="text-sm text-white/80 mb-1 font-medium">Total Value</p>
+                    <p className="text-2xl font-bold text-white">
+                        ${formatWeiToUSD(balance?.total)}
+                    </p>
                 </div>
             </div>
 

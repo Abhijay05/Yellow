@@ -468,6 +468,7 @@ export function useCreateMarket() {
             abi: RouterABI,
             functionName: 'createMarket',
             args: [title, description, category, resolutionSource, isDynamic, durationSeconds, parseEther(collateral.toString())],
+            gas: 10000000, // 10M - under Sepolia 16.7M cap
         })
     }
 

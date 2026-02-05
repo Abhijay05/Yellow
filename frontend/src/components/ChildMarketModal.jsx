@@ -17,8 +17,11 @@ export function ChildMarketModal({ isOpen, onClose, parentPosition }) {
         duration: '7', // days
     });
 
-    const { extendChain } = useYellowSession();
-    const { writeContract: createMarket, isPending: isCreating } = useCreateMarket();
+    // Get session hook (extendChain not yet implemented)
+    const yellowSession = useYellowSession();
+
+    // Get createMarket function from hook (correct destructuring)
+    const { createMarket, isPending: isCreating } = useCreateMarket();
     const [isExtending, setIsExtending] = useState(false);
 
     if (!parentPosition || !isOpen) return null;
@@ -39,29 +42,31 @@ export function ChildMarketModal({ isOpen, onClose, parentPosition }) {
             const liquidityWei = ethers.parseEther(availableCollateral.toString());
 
             const tx = await createMarket({
-                args: [
-                    formData.title,
-                    formData.description,
-                    `Child of ${parentPosition.market}`, // resolutionSource
-                    formData.category,
-                    false, // isDynamic
-                    durationSeconds,
-                    liquidityWei
-                ]
+                title: formData.title,
+                description: formData.description,
+                resolutionSource: `Child of ${parentPosition.market}`,
+                category: formData.category,
+                isDynamic: false,
+                duration: durationSeconds,
+                collateral: availableCollateral
             });
 
+            console.log('Child market created:', tx);
+
             // Step 2: Extend conviction chain in Yellow session
-            // TODO: Get actual child market ID from tx receipt
-            const childMarketId = `child-${Date.now()}`;
+            // TODO: Implement extendChain in Yellow Network protocol
+            console.warn('Chain extension not yet implemented - market created independently');
 
-            await extendChain(
-                parentPosition.market,
-                childMarketId,
-                BigInt(Math.floor(Number(parentPosition.investmentAmount) * 0.6)),
-                parentPosition.side
-            );
+            // When extendChain is ready, uncomment:
+            // const childMarketId = tx.address; // Get from transaction
+            // await yellowSession.extendChain(
+            //     parentPosition.market,
+            //     childMarketId,
+            //     BigInt(Math.floor(Number(parentPosition.investmentAmount) * 0.6)),
+            //     parentPosition.side
+            // );
 
-            alert('Child market created and chain extended! 🔗');
+            alert('✅ Child market created! (Chain extension pending Yellow protocol implementation)');
             onClose();
             setFormData({
                 title: '',
