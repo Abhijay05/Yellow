@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useWalletClient, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { YellowClient } from '../lib/yellowClient';
-import { MOCK_USD } from '../lib/wagmi';
+import { MOCK_USD, ROUTER } from '../lib/wagmi';
 import { ERC20ABI, LvrMarketABI } from '../lib/contracts';
 import { ethers } from 'ethers';
 
@@ -81,14 +81,13 @@ export function useYellowSession() {
             console.log('Opening Yellow session with deposit:', depositAmount.toString());
 
             // Step 1: Approve USDC spending (triggers MetaMask)
-            console.log('Step 1/4: Approving USDC...');
-            const routerAddress = import.meta.env.VITE_ROUTER_ADDRESS;
+            console.log('Step 1/4: Approving USDC...', { router: ROUTER });
 
             const approveTx = await writeContractAsync({
                 address: MOCK_USD,
                 abi: ERC20ABI,
                 functionName: 'approve',
-                args: [routerAddress, depositAmount], // Approve Router to take funds
+                args: [ROUTER, depositAmount], // Approve Router to take funds
             });
             console.log('Approval tx:', approveTx);
 
@@ -101,7 +100,7 @@ export function useYellowSession() {
                 address: MOCK_USD,
                 abi: ERC20ABI,
                 functionName: 'transfer',
-                args: [routerAddress, depositAmount], // Lock funds in Router
+                args: [ROUTER, depositAmount], // Lock funds in Router
             });
             console.log('Transfer tx:', transferTx);
             console.log(`💰 Deposited ${Number(depositAmount) / 1e18} mUSD to custody`);

@@ -281,9 +281,43 @@ export class YellowClient {
         }
 
         // Update local state immediately (optimistic update)
-        const position = new Position(marketId, side, totalTokens, amount);
+        // CHECK IF POSITION EXISTS FOR SAME MARKET+SIDE - AGGREGATE!
+        const existingIndex = this.sessionState.positions.findIndex(
+            p => p.market === marketId && p.side === side
+        );
+
+        if (existingIndex >= 0) {
+            // Aggregate into existing position
+            const existing = this.sessionState.positions[existingIndex];
+            // Handle both BigInt and string for type safety
+            const existingTokens = typeof existing.tokenAmount === 'bigint'
+                ? existing.tokenAmount
+                : BigInt(existing.tokenAmount || '0');
+            const existingInvestment = typeof existing.investmentAmount === 'bigint'
+                ? existing.investmentAmount
+                : BigInt(existing.investmentAmount || '0');
+
+            existing.tokenAmount = existingTokens + totalTokens;
+            existing.investmentAmount = existingInvestment + amount;
+            console.log('[Yellow] 📈 Position aggregated:', {
+                market: marketId,
+                side: side ? 'YES' : 'NO',
+                newTotalTokens: Number(existing.tokenAmount) / 1e18,
+                newTotalInvestment: Number(existing.investmentAmount) / 1e18
+            });
+        } else {
+            // Create new position
+            const position = new Position(marketId, side, totalTokens, amount);
+            this.sessionState.positions.push(position);
+            console.log('[Yellow] 🆕 New position created:', {
+                market: marketId,
+                side: side ? 'YES' : 'NO',
+                tokens: Number(totalTokens) / 1e18,
+                investment: Number(amount) / 1e18
+            });
+        }
+
         this.sessionState.availableBalance -= amount;
-        this.sessionState.positions.push(position);
         this.sessionState.stateVersion++;
 
         // 🔥 UPDATE RESERVES IN SESSION STATE (for bonding curve)

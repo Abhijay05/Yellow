@@ -1,6 +1,6 @@
 /**
- * ChainBet Main Page - REVAMPED
- * Yellow Network powered trading interface with proper state display
+ * ChainBet - Premium Trading Interface
+ * Powered by Yellow Network State Channels
  */
 
 import { useState } from 'react';
@@ -8,129 +8,152 @@ import { SessionManager } from '../components/SessionManager';
 import { MarketList } from '../components/MarketList';
 import { TradingInterface } from '../components/TradingInterface';
 import { CreateMarketModal } from '../components/CreateMarketModal';
-import { UserStatePanel } from '../components/UserStatePanel';
 import { MarketStatePanel } from '../components/MarketStatePanel';
 import { PositionsDashboard } from '../components/PositionsDashboard';
+import { Plus, Zap, TrendingUp, Shield, Clock } from 'lucide-react';
 
 export default function ChainBet() {
     const [selectedMarket, setSelectedMarket] = useState(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-950">
-            {/* Hero Section */}
-            <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white py-10">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="text-center mb-6">
-                        <h1 className="text-4xl font-bold mb-2">
-                            ⚡ ChainBet
-                        </h1>
-                        <p className="text-lg text-violet-100">
-                            Conviction Chains • Zero Gas • Powered by Yellow Network
-                        </p>
-                    </div>
+        <div className="min-h-screen">
+            {/* Hero Section - Premium Gradient */}
+            <div className="relative overflow-hidden">
+                {/* Background Effects */}
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-purple-600/10 to-transparent" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.15),transparent_50%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(6,182,212,0.1),transparent_50%)]" />
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                            <div className="text-2xl mb-2">⚡</div>
-                            <div className="font-bold">Instant Trades</div>
-                            <div className="text-xs text-violet-200">Sub-second via Yellow</div>
+                {/* Animated Orbs */}
+                <div className="absolute top-20 left-1/4 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl animate-float" />
+                <div className="absolute top-40 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '-1.5s' }} />
+
+                <div className="relative max-w-7xl mx-auto px-4 py-12">
+                    <div className="text-center space-y-4">
+                        {/* Logo Badge */}
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 mb-4">
+                            <Zap className="w-4 h-4 text-violet-400" />
+                            <span className="text-sm font-medium text-violet-300">Powered by Yellow Network</span>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                            <div className="text-2xl mb-2">💸</div>
-                            <div className="font-bold">Zero Gas</div>
-                            <div className="text-xs text-violet-200">All trades off-chain</div>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                            <div className="text-2xl mb-2">🔗</div>
-                            <div className="font-bold">Conviction Chains</div>
-                            <div className="text-xs text-violet-200">Compound your bets</div>
+
+                        {/* Title */}
+                        <h1 className="text-5xl md:text-6xl font-black tracking-tight">
+                            <span className="gradient-text-violet">Chain</span>
+                            <span className="text-white">Bet</span>
+                        </h1>
+
+                        {/* Subtitle */}
+                        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                            Trade prediction markets with <span className="text-cyan-400 font-semibold">zero gas fees</span>.
+                            Chain your conviction for exponential returns.
+                        </p>
+
+                        {/* Stats Bar */}
+                        <div className="flex flex-wrap items-center justify-center gap-8 pt-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                <span className="text-sm text-slate-400">Live on Sepolia</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                <TrendingUp className="w-4 h-4 text-violet-400" />
+                                <span>Instant Trades</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                <Shield className="w-4 h-4 text-cyan-400" />
+                                <span>State Channel Security</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                <Clock className="w-4 h-4 text-emerald-400" />
+                                <span>Off-Chain Settlement</span>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Bottom fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
             </div>
 
-            {/* Main Content - 3 Column Layout */}
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                {/* Session Manager - Full Width */}
-                <div className="mb-6">
+            {/* Main Content */}
+            <div className="max-w-7xl mx-auto px-4 pb-12 -mt-8 relative z-10">
+                {/* Session Manager - Premium Card */}
+                <div className="mb-8">
                     <SessionManager />
                 </div>
 
-                {/* Main Grid: User State | Markets/Trading | Market State */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                    {/* Left Column - User State Panel */}
-                    <div className="lg:col-span-3">
-                        <div className="sticky top-4 space-y-6">
-                            <UserStatePanel />
-                        </div>
-                    </div>
-
-                    {/* Center Column - Markets & Trading */}
-                    <div className="lg:col-span-6 space-y-6">
-                        {/* Create Market Button */}
+                {/* Main Grid - 2 Column */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column - Markets */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Create Market Button - Highly Visible */}
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            className="w-full py-5 px-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 group bg-gradient-to-r from-violet-600 via-purple-600 to-violet-600 text-white border-2 border-violet-400/50 shadow-xl shadow-violet-500/30 hover:shadow-violet-500/50 hover:scale-[1.02] transition-all"
                         >
-                            <span className="text-xl">+</span>
+                            <Plus className="w-6 h-6 transition-transform group-hover:rotate-90" />
                             Create New Market
                         </button>
 
                         {/* Market List */}
-                        <MarketList
-                            selectedMarket={selectedMarket}
-                            onSelectMarket={setSelectedMarket}
-                        />
+                        <div className="premium-card p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-violet-400" />
+                                    Active Markets
+                                </h2>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                    <span className="text-xs text-slate-500">Live</span>
+                                </div>
+                            </div>
+                            <MarketList
+                                selectedMarket={selectedMarket}
+                                onSelectMarket={setSelectedMarket}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right Column - Trading & State */}
+                    <div className="space-y-6">
+                        {/* Market State Panel */}
+                        <MarketStatePanel market={selectedMarket} />
 
                         {/* Trading Interface */}
                         <TradingInterface market={selectedMarket} />
-
-                        {/* Positions Dashboard */}
-                        <PositionsDashboard />
-                    </div>
-
-                    {/* Right Column - Market State Panel */}
-                    <div className="lg:col-span-3">
-                        <div className="sticky top-4">
-                            <MarketStatePanel market={selectedMarket} />
-                        </div>
                     </div>
                 </div>
 
-                {/* How It Works - Compact */}
-                <div className="mt-10 bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                    <h3 className="text-xl font-bold text-white text-center mb-6">How ChainBet Works</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center">
-                            <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span className="text-xl">1️⃣</span>
+                {/* Positions Dashboard */}
+                <div className="mt-10">
+                    <PositionsDashboard />
+                </div>
+
+                {/* How It Works - Premium */}
+                <div className="mt-10 premium-card p-8">
+                    <h3 className="text-center text-sm uppercase tracking-widest text-slate-500 mb-8">
+                        How ChainBet Works
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {[
+                            { step: '01', icon: '💰', title: 'Deposit', desc: 'Lock funds once on-chain' },
+                            { step: '02', icon: '⚡', title: 'Trade', desc: 'Unlimited zero-gas trades' },
+                            { step: '03', icon: '🔗', title: 'Chain', desc: 'Use positions as collateral' },
+                            { step: '04', icon: '✅', title: 'Settle', desc: 'Close & withdraw anytime' }
+                        ].map((item, i) => (
+                            <div key={i} className="text-center group">
+                                <div className="relative inline-block mb-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-600/10 border border-violet-500/20 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                                        {item.icon}
+                                    </div>
+                                    <span className="absolute -top-2 -right-2 text-xs font-bold text-violet-400 bg-background px-2 py-0.5 rounded-full border border-violet-500/30">
+                                        {item.step}
+                                    </span>
+                                </div>
+                                <h4 className="font-bold text-white mb-1">{item.title}</h4>
+                                <p className="text-sm text-slate-500">{item.desc}</p>
                             </div>
-                            <h4 className="font-bold text-white text-sm">Deposit</h4>
-                            <p className="text-xs text-gray-400">Lock funds in Yellow</p>
-                        </div>
-                        <div className="text-center">
-                            <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span className="text-xl">2️⃣</span>
-                            </div>
-                            <h4 className="font-bold text-white text-sm">Trade</h4>
-                            <p className="text-xs text-gray-400">Unlimited free trades</p>
-                        </div>
-                        <div className="text-center">
-                            <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span className="text-xl">3️⃣</span>
-                            </div>
-                            <h4 className="font-bold text-white text-sm">Chain</h4>
-                            <p className="text-xs text-gray-400">Use positions as collateral</p>
-                        </div>
-                        <div className="text-center">
-                            <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span className="text-xl">4️⃣</span>
-                            </div>
-                            <h4 className="font-bold text-white text-sm">Settle</h4>
-                            <p className="text-xs text-gray-400">Close & withdraw</p>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>

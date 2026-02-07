@@ -1,184 +1,159 @@
 /**
- * Positions Dashboard Component - REVAMPED
- * Shows all active positions with tokens, market info, and sell options
+ * Positions Dashboard - Premium UI
+ * Beautiful display of all user positions
  */
 
 import { useYellowSession } from '../hooks/useYellowSession';
 import { useMarkets } from '../hooks/useContracts';
-import { formatWeiToUSD } from '../lib/formatters';
+import {
+    Briefcase,
+    TrendingUp,
+    TrendingDown,
+    DollarSign,
+    Sparkles,
+    ArrowUpRight,
+    ArrowDownRight
+} from 'lucide-react';
 
 export function PositionsDashboard() {
-    const { positions, marketSell, isSessionActive, balance } = useYellowSession();
+    const { isSessionActive, positions, balance } = useYellowSession();
     const { data: markets } = useMarkets();
 
-    // Safe token formatting - handles BigInt properly
-    const formatTokens = (amount) => {
-        if (!amount) return '0.00';
+    // Format balance safely
+    const formatAmount = (value) => {
+        if (!value) return '0.00';
         try {
-            const num = typeof amount === 'bigint'
-                ? Number(amount) / 1e18
-                : Number(amount) / 1e18;
-            return num.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 4
-            });
+            const num = typeof value === 'bigint' ? Number(value) / 1e18 : Number(value);
+            if (!isFinite(num)) return '0.00';
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         } catch {
             return '0.00';
         }
     };
 
+    // Find market by address
+    const findMarket = (marketId) => {
+        return markets?.find(m => m.address?.toLowerCase() === marketId?.toLowerCase());
+    };
+
     if (!isSessionActive) {
-        return (
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 text-center border border-gray-200">
-                <div className="text-5xl mb-4">🔒</div>
-                <h3 className="text-xl font-bold text-gray-700 mb-2">No Active Session</h3>
-                <p className="text-gray-500">
-                    Open a Yellow session to start trading
-                </p>
-            </div>
-        );
+        return null;
     }
 
     if (!positions || positions.length === 0) {
         return (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 text-center border border-blue-200">
-                <div className="text-5xl mb-4">📊</div>
-                <h3 className="text-xl font-bold text-gray-700 mb-2">No Positions Yet</h3>
-                <p className="text-gray-500 mb-4">
-                    Buy YES or NO tokens to see your portfolio here
-                </p>
-                <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm">
-                    💡 Tip: Start with a $10-50 trade to test
+            <div className="premium-card p-8 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-500/10 border border-violet-500/20 mb-4">
+                    <Briefcase className="w-8 h-8 text-violet-400" />
                 </div>
+                <h3 className="text-xl font-bold text-white mb-2">No Positions Yet</h3>
+                <p className="text-slate-400 max-w-sm mx-auto">
+                    Start trading on any market to build your portfolio
+                </p>
             </div>
         );
     }
 
+    // Calculate totals
+    const totalInvested = positions.reduce((sum, pos) => {
+        const amt = typeof pos.investmentAmount === 'bigint'
+            ? Number(pos.investmentAmount) / 1e18
+            : Number(pos.investmentAmount || 0);
+        return sum + amt;
+    }, 0);
+
     return (
-        <div className="space-y-6">
-            {/* Portfolio Summary */}
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
-                <h2 className="text-xl font-bold mb-4">📊 Your Portfolio</h2>
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white/20 rounded-xl p-4">
-                        <p className="text-sm text-white/80 mb-1">Total Positions</p>
-                        <p className="text-2xl font-bold">{positions.length}</p>
+        <div className="premium-card overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b border-white/5">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 border border-violet-500/20 flex items-center justify-center">
+                            <Briefcase className="w-6 h-6 text-violet-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Your Positions</h3>
+                            <p className="text-sm text-slate-500">{positions.length} active positions</p>
+                        </div>
                     </div>
-                    <div className="bg-white/20 rounded-xl p-4">
-                        <p className="text-sm text-white/80 mb-1">Invested</p>
-                        <p className="text-2xl font-bold">
-                            ${formatWeiToUSD(balance?.locked)}
-                        </p>
-                    </div>
-                    <div className="bg-white/20 rounded-xl p-4">
-                        <p className="text-sm text-white/80 mb-1">Available</p>
-                        <p className="text-2xl font-bold">
-                            ${formatWeiToUSD(balance?.available)}
-                        </p>
+                    <div className="text-right">
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">Total Invested</p>
+                        <p className="text-2xl font-bold gradient-text">${formatAmount(totalInvested * 1e18)}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Position Cards */}
-            <div className="space-y-4">
-                {positions.map((position, idx) => {
-                    // Find corresponding market
-                    const market = markets?.find(m => m.address === position.market);
-
-                    // Format amounts safely
-                    const investment = formatTokens(position.investmentAmount);
-                    const tokens = formatTokens(position.tokenAmount);
-                    const rawTokens = typeof position.tokenAmount === 'bigint'
+            {/* Positions List */}
+            <div className="divide-y divide-white/5">
+                {positions.map((position, index) => {
+                    const market = findMarket(position.marketId);
+                    const isYes = position.side === true || position.side === 'yes' || position.side === 'YES';
+                    const tokens = typeof position.tokenAmount === 'bigint'
                         ? Number(position.tokenAmount) / 1e18
-                        : Number(position.tokenAmount) / 1e18;
+                        : Number(position.tokenAmount || 0);
+                    const invested = typeof position.investmentAmount === 'bigint'
+                        ? Number(position.investmentAmount) / 1e18
+                        : Number(position.investmentAmount || 0);
+                    const avgPrice = tokens > 0 ? (invested / tokens) : 0;
 
                     return (
                         <div
-                            key={idx}
-                            className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 hover:border-indigo-300 transition-all overflow-hidden"
+                            key={`${position.marketId}-${position.side}-${index}`}
+                            className="p-5 hover:bg-white/2 transition-colors animate-slide-up"
+                            style={{ animationDelay: `${index * 50}ms` }}
                         >
-                            {/* Position Header */}
-                            <div className={`p-4 ${position.side ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-red-500 to-rose-500'} text-white`}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-3xl">
-                                            {position.side ? '✅' : '❌'}
-                                        </span>
-                                        <div>
-                                            <span className="text-lg font-bold">
-                                                {position.side ? 'YES' : 'NO'} Position
-                                            </span>
-                                            <p className="text-sm text-white/80">
-                                                {market?.question || 'Loading market...'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-2xl font-bold">{tokens}</p>
-                                        <p className="text-xs text-white/80">tokens owned</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Position Details */}
-                            <div className="p-6">
-                                <div className="grid grid-cols-2 gap-4 mb-6">
-                                    <div className="bg-gray-50 rounded-xl p-4">
-                                        <p className="text-xs text-gray-500 mb-1">💰 Investment</p>
-                                        <p className="text-xl font-bold text-gray-900">${investment}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-xl p-4">
-                                        <p className="text-xs text-gray-500 mb-1">🎯 Token Count</p>
-                                        <p className="text-xl font-bold text-gray-900">{tokens}</p>
-                                    </div>
-                                </div>
-
-                                {/* Market Address */}
-                                <div className="text-xs text-gray-400 mb-4 font-mono">
-                                    Market: {position.market?.slice(0, 10)}...{position.market?.slice(-8)}
-                                </div>
-
-                                {/* Sell Actions */}
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => {
-                                            const halfTokens = typeof position.tokenAmount === 'bigint'
-                                                ? position.tokenAmount / 2n
-                                                : BigInt(Math.floor(Number(position.tokenAmount) / 2));
-                                            marketSell(position.market, position.side, halfTokens);
-                                        }}
-                                        className="flex-1 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg"
-                                    >
-                                        Sell 50% ({(rawTokens / 2).toFixed(2)} tokens)
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            marketSell(position.market, position.side, position.tokenAmount);
-                                        }}
-                                        className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg"
-                                    >
-                                        Sell All ({rawTokens.toFixed(2)} tokens)
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Market Resolved Status */}
-                            {market?.isResolved && (
-                                <div className="bg-purple-50 border-t border-purple-200 p-4">
-                                    <p className="text-sm text-purple-800 font-medium">
-                                        🎯 Market Resolved: {market.outcome ? 'YES' : 'NO'}
-                                    </p>
-                                    {position.side === market.outcome && (
-                                        <p className="text-xs text-purple-600 mt-1">
-                                            ✅ You won! Close session to claim winnings
-                                        </p>
+                            <div className="flex items-start gap-4">
+                                {/* Side Icon */}
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isYes
+                                        ? 'bg-emerald-500/10 border border-emerald-500/20'
+                                        : 'bg-red-500/10 border border-red-500/20'
+                                    }`}>
+                                    {isYes ? (
+                                        <TrendingUp className="w-6 h-6 text-emerald-400" />
+                                    ) : (
+                                        <TrendingDown className="w-6 h-6 text-red-400" />
                                     )}
                                 </div>
-                            )}
+
+                                {/* Details */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="text-white font-semibold truncate">
+                                            {market?.question || market?.title || shortenAddress(position.marketId)}
+                                        </h4>
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isYes
+                                                ? 'bg-emerald-500/20 text-emerald-400'
+                                                : 'bg-red-500/20 text-red-400'
+                                            }`}>
+                                            {isYes ? 'YES' : 'NO'}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-slate-500">
+                                        Avg. price: {(avgPrice * 100).toFixed(1)}¢
+                                    </p>
+                                </div>
+
+                                {/* Values */}
+                                <div className="text-right flex-shrink-0">
+                                    <p className={`text-xl font-bold ${isYes ? 'text-emerald-400' : 'text-red-400'
+                                        }`}>
+                                        {tokens.toFixed(2)}
+                                    </p>
+                                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                                        <DollarSign className="w-3 h-3" />
+                                        {invested.toFixed(2)} invested
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     );
                 })}
             </div>
         </div>
     );
+}
+
+function shortenAddress(address) {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
