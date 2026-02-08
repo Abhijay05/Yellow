@@ -9,6 +9,7 @@ import { ChevronDown, Menu, X } from "lucide-react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { useMUSDBalance } from "./hooks/useContracts";
+import { useENSName, formatAddressOrENS } from "./hooks/useENS";
 
 // QueryClient initialization moved to main.jsx
 
@@ -21,6 +22,7 @@ const Header = () => {
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const { data: musdBalance } = useMUSDBalance();
+  const { ensName } = useENSName(address);
 
   // Sepolia Chain ID
   const SEPOLIA_CHAIN_ID = 11155111;
@@ -96,7 +98,7 @@ const Header = () => {
                     "Switch Network"
                   ) : (
                     <span className="flex items-center gap-2">
-                      {address?.slice(0, 6)}...{address?.slice(-4)}
+                      {formatAddressOrENS(address, ensName)}
                       <ChevronDown size={16} />
                     </span>
                   )
@@ -108,8 +110,13 @@ const Header = () => {
               {isConnected && !isWrongNetwork && walletDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg" style={{ border: "1px solid rgba(255, 255, 255, 0.06)" }}>
                   <div className="p-3" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
-                    <p className="text-xs text-slate-500">Wallet Address</p>
-                    <p className="text-sm text-white font-mono break-all">
+                    <p className="text-xs text-slate-500">{ensName ? "ENS Name" : "Wallet Address"}</p>
+                    {ensName && (
+                      <p className="text-sm text-white font-medium mb-2">
+                        {ensName}
+                      </p>
+                    )}
+                    <p className={`text-xs ${ensName ? "text-slate-500" : "text-white"} font-mono break-all`}>
                       {address}
                     </p>
                   </div>

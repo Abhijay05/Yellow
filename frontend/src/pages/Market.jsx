@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertCircle, Gavel, Coins, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Gavel, Coins, Clock, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMarketDetails, useTrade, useApproveMUSD, useAllowance, useUserBalances, useMUSDBalance, useAdminResolve, useRedeem, useTokenAllowance, useApproveToken } from "../hooks/useContracts";
 import { useAccount } from "wagmi";
 import { maxUint256, parseEther } from "viem";
+import { useENSName, formatAddressOrENS } from "../hooks/useENS";
 
 const formatCurrency = (num) => {
   return "$" + Number(num).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -340,6 +341,7 @@ export default function Market() {
   const { data: market, isLoading } = useMarketDetails(marketAddress);
   const { data: userBalances } = useUserBalances(marketAddress);
   const { address } = useAccount();
+  const { ensName: creatorENS } = useENSName(market?.admin);
 
   const { resolve, isPending: isResolving } = useAdminResolve();
   const { redeem, isPending: isRedeeming } = useRedeem();
@@ -415,6 +417,15 @@ export default function Market() {
                 <div className="pill-btn border-indigo-500/30 text-indigo-400">
                   <CountdownTimer deadline={market.deadline} />
                 </div>
+                {market.admin && (
+                  <div className="flex items-center gap-2 pill-btn border-slate-500/30 text-slate-300">
+                    <User size={14} />
+                    <span className="text-slate-500 text-sm">Created by:</span>
+                    <span className="text-sm font-medium">
+                      {formatAddressOrENS(market.admin, creatorENS)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

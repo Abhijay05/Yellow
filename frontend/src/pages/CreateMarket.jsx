@@ -11,7 +11,6 @@ export default function CreateMarket() {
     question: "",
     criteria: "",
     sourceUrl: "",
-    sourceUrl: "",
     durationDays: "",
     durationHours: "",
     durationMinutes: "",
@@ -50,7 +49,6 @@ export default function CreateMarket() {
       title: formData.question,
       description: formData.criteria, // Using criteria as description
       resolutionSource: formData.sourceUrl,
-      isDynamic: false, // Default to static for simpler UI
       isDynamic: false, // Default to static for simpler UI
       duration: {
         days: formData.durationDays || 0,

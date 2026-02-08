@@ -2,8 +2,8 @@ import { http, createConfig } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 import { injected } from 'wagmi/connectors'
 
-// RPC URL - using Alchemy Sepolia
-const ALCHEMY_RPC = 'https://eth-sepolia.g.alchemy.com/v2/li4OnJ2X49q4tjD1XWg0fCvYwOHXnVDc'
+// RPC URL - using Alchemy Sepolia from environment variable
+const ALCHEMY_RPC = import.meta.env.VITE_ALCHEMY_RPC || 'https://rpc.sepolia.org'
 
 export const config = createConfig({
     chains: [sepolia],
