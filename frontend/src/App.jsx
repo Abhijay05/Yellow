@@ -1,11 +1,13 @@
-import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
+import Markets from "./pages/Markets";
+import Market from "./pages/Market";
+import CreateMarket from "./pages/CreateMarket";
 import Dashboard from "./pages/Dashboard";
-import ChainBet from "./pages/ChainBet";
 import NotFound from "./pages/NotFound";
 import { useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
-
+import { injected } from "wagmi/connectors";
 import { useMUSDBalance } from "./hooks/useContracts";
 
 // QueryClient initialization moved to main.jsx
@@ -15,7 +17,7 @@ const Header = () => {
   const [walletDropdownOpen, setWalletDropdownOpen] = useState(false);
 
   const { address, isConnected, chainId } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const { data: musdBalance } = useMUSDBalance();
@@ -32,7 +34,7 @@ const Header = () => {
         disconnect();
       }
     } else {
-      connect({ connector: connectors[0] });
+      connect({ connector: injected() });
     }
   };
 
@@ -48,10 +50,16 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             <Link
-              to="/chainbet"
-              className="text-slate-400 hover:text-white transition-colors font-semibold"
+              to="/markets"
+              className="text-slate-400 hover:text-white transition-colors"
             >
-              ⚡ ChainBet
+              Markets
+            </Link>
+            <Link
+              to="/create"
+              className="text-slate-400 hover:text-white transition-colors"
+            >
+              Create
             </Link>
             <Link
               to="/dashboard"
@@ -131,11 +139,18 @@ const Header = () => {
       {mobileMenuOpen && (
         <nav className="md:hidden border-t border-white/6 py-4 space-y-3">
           <Link
-            to="/chainbet"
+            to="/markets"
             className="block text-slate-400 hover:text-white transition-colors"
             onClick={() => setMobileMenuOpen(false)}
           >
-            ⚡ ChainBet
+            Markets
+          </Link>
+          <Link
+            to="/create"
+            className="block text-slate-400 hover:text-white transition-colors"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Create
           </Link>
           <Link
             to="/dashboard"
@@ -178,27 +193,38 @@ const Layout = ({ children }) => (
 
 const App = () => (
   <Routes>
-    {/* Homepage - ChainBet */}
     <Route
       path="/"
       element={
         <Layout>
-          <ChainBet />
+          <Markets />
         </Layout>
       }
     />
-
-    {/* ChainBet page */}
     <Route
-      path="/chainbet"
+      path="/markets"
       element={
         <Layout>
-          <ChainBet />
+          <Markets />
         </Layout>
       }
     />
-
-    {/* Profile/Dashboard */}
+    <Route
+      path="/market/:id"
+      element={
+        <Layout>
+          <Market />
+        </Layout>
+      }
+    />
+    <Route
+      path="/create"
+      element={
+        <Layout>
+          <CreateMarket />
+        </Layout>
+      }
+    />
     <Route
       path="/dashboard"
       element={
@@ -207,13 +233,6 @@ const App = () => (
         </Layout>
       }
     />
-
-    {/* Legacy routes - redirect to ChainBet */}
-    <Route path="/markets" element={<Navigate to="/chainbet" replace />} />
-    <Route path="/create" element={<Navigate to="/chainbet" replace />} />
-    <Route path="/market/:id" element={<Navigate to="/chainbet" replace />} />
-
-    {/* 404 */}
     <Route
       path="*"
       element={

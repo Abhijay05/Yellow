@@ -46,12 +46,9 @@ export const RouterABI = [
         inputs: [{ name: 'marketId', type: 'bytes32' }],
         outputs: [
             { name: 'market', type: 'address' },
-            { name: 'creator', type: 'address' },
             { name: 'liquidity', type: 'uint256' },
-            { name: 'deadline', type: 'uint256' },
             { name: 'title', type: 'string' },
             { name: 'description', type: 'string' },
-            { name: 'category', type: 'string' },
             { name: 'resolutionSource', type: 'string' },
         ],
         stateMutability: 'view',
@@ -66,20 +63,16 @@ export const RouterABI = [
     // Write Functions
     {
         type: 'function',
-        name: 'createMarket',
+        name: 'create',
         inputs: [
             { name: 'title', type: 'string' },
             { name: 'description', type: 'string' },
-            { name: 'category', type: 'string' },
             { name: 'resolutionSource', type: 'string' },
             { name: 'isDynamic', type: 'bool' },
             { name: 'duration', type: 'uint256' },
             { name: 'collateralIn', type: 'uint256' },
         ],
-        outputs: [
-            { name: 'marketId', type: 'bytes32' },
-            { name: 'marketAddress', type: 'address' }
-        ],
+        outputs: [],
         stateMutability: 'nonpayable',
     },
     {
@@ -275,16 +268,6 @@ export const ERC20ABI = [
         name: 'approve',
         inputs: [
             { name: 'spender', type: 'address' },
-            { name: 'amount', type: 'uint256' },
-        ],
-        outputs: [{ type: 'bool' }],
-        stateMutability: 'nonpayable',
-    },
-    {
-        type: 'function',
-        name: 'transfer',
-        inputs: [
-            { name: 'to', type: 'address' },
             { name: 'amount', type: 'uint256' },
         ],
         outputs: [{ type: 'bool' }],
