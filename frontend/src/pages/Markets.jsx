@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { TrendingUp, Loader2 } from "lucide-react";
+import { TrendingUp, Loader2, User } from "lucide-react";
 import { useMarkets } from "../hooks/useContracts";
+import { useENSName, formatAddressOrENS } from "../hooks/useENS";
 
 const formatNumber = (num) => {
   if (num >= 1000000) {
@@ -43,6 +44,7 @@ const MarketCard = ({ market }) => {
   // Calculate percentage from price or pool if not explicitly provided in percentage field
   // The hook returns priceYes which is 0-1. Convert to percentage.
   const percentage = market.priceYes ? (market.priceYes * 100) : 50;
+  const { ensName: creatorENS } = useENSName(market?.admin);
 
   return (
     <Link to={`/market/${market.address}`}>
@@ -70,6 +72,17 @@ const MarketCard = ({ market }) => {
         <div className="mb-4">
           <ProbabilityBar yesPercentage={percentage} />
         </div>
+
+        {/* Creator */}
+        {market.admin && (
+          <div className="mb-4 flex items-center gap-2 text-xs">
+            <User size={12} className="text-slate-500" />
+            <span className="text-slate-500">Created by:</span>
+            <span className="text-slate-300 font-medium">
+              {formatAddressOrENS(market.admin, creatorENS)}
+            </span>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 text-xs">
