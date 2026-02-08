@@ -91,6 +91,13 @@ export function useMarkets() {
                             functionName: 'getMarketDetails',
                         })
 
+                        // Fetch admin address
+                        const admin = await publicClient.readContract({
+                            address: address,
+                            abi: LvrMarketABI,
+                            functionName: 'i_admin',
+                        }).catch(() => null)
+
                         return {
                             address,
                             marketId,
@@ -103,6 +110,7 @@ export function useMarkets() {
                             outcome: Number(details[2]),
                             priceYes: Number(formatEther(details[6])),
                             priceNo: Number(formatEther(details[7])),
+                            admin: admin, // Creator address
                         }
                     } catch (e) {
                         console.error('Error fetching market:', e)
